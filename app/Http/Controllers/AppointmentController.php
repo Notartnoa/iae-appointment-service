@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SendAppointmentNotification;
 use App\Models\Appointment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -89,6 +90,11 @@ class AppointmentController extends Controller
             'doctor_specialization' => $doctor['specialization'],
         ]);
 
+        SendAppointmentNotification::dispatch(
+            $appointment->toArray(),
+            'appointment_created'
+        )->onQueue('notifications');
+
         return response()->json([
             'success' => true,
             'message' => 'Appointment created successfully',
@@ -118,6 +124,11 @@ class AppointmentController extends Controller
 
         $appointment->update($validated);
 
+        SendAppointmentNotification::dispatch(
+            $appointment->fresh()->toArray(),
+            'appointment_updated'
+        )->onQueue('notifications');
+
         return response()->json([
             'success' => true,
             'message' => 'Appointment updated successfully',
@@ -137,6 +148,11 @@ class AppointmentController extends Controller
         }
 
         $appointment->update(['status' => 'cancelled']);
+
+        SendAppointmentNotification::dispatch(
+            $appointment->fresh()->toArray(),
+            'appointment_cancelled'
+        )->onQueue('notifications');
 
         return response()->json([
             'success' => true,
